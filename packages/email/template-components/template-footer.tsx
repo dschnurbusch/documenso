@@ -1,3 +1,4 @@
+import { env } from '@documenso/lib/utils/env';
 import { Trans } from '@lingui/react/macro';
 
 import { Link, Section, Text } from '../components';
@@ -9,6 +10,7 @@ export type TemplateFooterProps = {
 
 export const TemplateFooter = ({ isDocument = true }: TemplateFooterProps) => {
   const branding = useBranding();
+  const webappUrl = env('NEXT_PUBLIC_WEBAPP_URL') ?? 'http://localhost:3000';
 
   return (
     <Section>
@@ -16,7 +18,7 @@ export const TemplateFooter = ({ isDocument = true }: TemplateFooterProps) => {
         <Text className="my-4 text-base text-slate-400">
           <Trans>
             This document was sent using{' '}
-            <Link className="text-[#7AC455]" href="https://documen.so/mail-footer">
+            <Link className="text-[#7AC455]" href={webappUrl}>
               Documenso
             </Link>
             .

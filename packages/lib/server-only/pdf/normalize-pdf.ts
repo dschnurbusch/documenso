@@ -1,11 +1,13 @@
 import { PDF } from '@libpdf/core';
 
 import { AppError } from '../../errors/app-error';
+import { repairAcroFormAppearanceEncoding } from './repair-acroform-appearance-encoding';
 
 export const normalizePdf = async (pdf: Buffer, options: { flattenForm?: boolean } = {}) => {
   const shouldFlattenForm = options.flattenForm ?? true;
+  const pdfToNormalize = shouldFlattenForm ? await repairAcroFormAppearanceEncoding(pdf) : pdf;
 
-  const pdfDoc = await PDF.load(pdf).catch((e) => {
+  const pdfDoc = await PDF.load(pdfToNormalize).catch((e) => {
     console.error(`PDF normalization error: ${e.message}`);
 
     throw new AppError('INVALID_DOCUMENT_FILE', {

@@ -15,11 +15,16 @@ import { encryptSecondaryData } from '../crypto/encrypt';
 
 export type GetCertificatePdfOptions = {
   documentId: number;
+  includeAuditLog?: boolean;
   // eslint-disable-next-line @typescript-eslint/ban-types
   language?: SupportedLanguageCodes | (string & {});
 };
 
-export const getCertificatePdf = async ({ documentId, language }: GetCertificatePdfOptions) => {
+export const getCertificatePdf = async ({
+  documentId,
+  includeAuditLog = false,
+  language,
+}: GetCertificatePdfOptions) => {
   const { chromium } = await import('playwright');
 
   const encryptedId = encryptSecondaryData({
@@ -61,13 +66,19 @@ export const getCertificatePdf = async ({ documentId, language }: GetCertificate
     },
   ]);
 
-  await page.goto(
-    `${USE_INTERNAL_URL_BROWSERLESS() ? NEXT_PUBLIC_WEBAPP_URL() : NEXT_PRIVATE_INTERNAL_WEBAPP_URL()}/__htmltopdf/certificate?d=${encryptedId}`,
-    {
-      waitUntil: 'networkidle',
-      timeout: 10_000,
-    },
+  const certificateUrl = new URL(
+    `${USE_INTERNAL_URL_BROWSERLESS() ? NEXT_PUBLIC_WEBAPP_URL() : NEXT_PRIVATE_INTERNAL_WEBAPP_URL()}/__htmltopdf/certificate`,
   );
+  certificateUrl.searchParams.set('d', encryptedId);
+
+  if (includeAuditLog) {
+    certificateUrl.searchParams.set('includeAuditLog', 'true');
+  }
+
+  await page.goto(certificateUrl.toString(), {
+    waitUntil: 'networkidle',
+    timeout: 10_000,
+  });
 
   // !: This is a workaround to ensure the page is loaded correctly.
   // !: It's not clear why but suddenly browserless cdp connections would

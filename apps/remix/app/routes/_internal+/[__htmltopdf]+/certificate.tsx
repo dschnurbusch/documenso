@@ -3,6 +3,7 @@ import { APP_I18N_OPTIONS, ZSupportedLanguageCodeSchema } from '@documenso/lib/c
 import { RECIPIENT_ROLE_SIGNING_REASONS, RECIPIENT_ROLES_DESCRIPTION } from '@documenso/lib/constants/recipient-roles';
 import { unsafeGetEntireEnvelope } from '@documenso/lib/server-only/admin/get-entire-document';
 import { decryptSecondaryData } from '@documenso/lib/server-only/crypto/decrypt';
+import { findDocumentAuditLogs } from '@documenso/lib/server-only/document/find-document-audit-logs';
 import { getDocumentCertificateAuditLogs } from '@documenso/lib/server-only/document/get-document-certificate-audit-logs';
 import { getOrganisationClaimByTeamId } from '@documenso/lib/server-only/organisation/get-organisation-claims';
 import { DOCUMENT_AUDIT_LOG_TYPE } from '@documenso/lib/types/document-audit-logs';
@@ -23,6 +24,7 @@ import { UAParser } from 'ua-parser-js';
 import { renderSVG } from 'uqr';
 
 import { BrandingLogo } from '~/components/general/branding-logo';
+import { InternalAuditLogTable } from '~/components/tables/internal-audit-log-table';
 
 import type { Route } from './+types/certificate';
 
@@ -33,6 +35,8 @@ const FRIENDLY_SIGNING_REASONS = {
 
 export async function loader({ request }: Route.LoaderArgs) {
   const d = new URL(request.url).searchParams.get('d');
+
+  const includeAuditLog = new URL(request.url).searchParams.get('includeAuditLog') === 'true';
 
   if (typeof d !== 'string' || !d) {
     throw redirect('/');
@@ -58,15 +62,23 @@ export async function loader({ request }: Route.LoaderArgs) {
     throw redirect('/');
   }
 
-  const organisationClaim = await getOrganisationClaimByTeamId({ teamId: envelope.teamId });
-
   const documentLanguage = ZSupportedLanguageCodeSchema.parse(envelope.documentMeta?.language);
 
-  const auditLogs = await getDocumentCertificateAuditLogs({
-    envelopeId: envelope.id,
-  });
-
-  const messages = await getTranslations(documentLanguage);
+  const [organisationClaim, certificateAuditLogs, fullAuditLogs, messages] = await Promise.all([
+    getOrganisationClaimByTeamId({ teamId: envelope.teamId }),
+    getDocumentCertificateAuditLogs({
+      envelopeId: envelope.id,
+    }),
+    includeAuditLog
+      ? findDocumentAuditLogs({
+          documentId,
+          userId: envelope.userId,
+          teamId: envelope.teamId,
+          perPage: 100_000,
+        })
+      : Promise.resolve({ data: [] }),
+    getTranslations(documentLanguage),
+  ]);
 
   return {
     document: {
@@ -86,8 +98,10 @@ export async function loader({ request }: Route.LoaderArgs) {
       documentMeta: envelope.documentMeta,
     },
     hidePoweredBy: organisationClaim.flags.hidePoweredBy,
+    includeAuditLog,
     documentLanguage,
-    auditLogs,
+    auditLogs: certificateAuditLogs,
+    fullAuditLogs: fullAuditLogs.data,
     messages,
   };
 }
@@ -102,7 +116,7 @@ export async function loader({ request }: Route.LoaderArgs) {
  * Update: Maybe <Trans> tags work now after RR7 migration.
  */
 export default function SigningCertificate({ loaderData }: Route.ComponentProps) {
-  const { document, documentLanguage, hidePoweredBy, auditLogs, messages } = loaderData;
+  const { document, documentLanguage, hidePoweredBy, includeAuditLog, auditLogs, fullAuditLogs, messages } = loaderData;
 
   const { i18n, _ } = useLingui();
 
@@ -202,9 +216,9 @@ export default function SigningCertificate({ loaderData }: Route.ComponentProps)
   };
 
   return (
-    <div className="print-provider pointer-events-none mx-auto max-w-screen-md">
+    <div className="print-provider pointer-events-none mx-auto max-w-screen-md print:max-w-none">
       <div className="flex items-center">
-        <h1 className="my-8 font-bold text-2xl">{_(msg`Signing Certificate`)}</h1>
+        <h1 className="my-3 font-bold text-xl print:my-2 print:text-base">{_(msg`Signing Certificate`)}</h1>
       </div>
 
       <Card>
@@ -363,9 +377,16 @@ export default function SigningCertificate({ loaderData }: Route.ComponentProps)
         </CardContent>
       </Card>
 
+      {includeAuditLog && (
+        <div className="mt-4 print:mt-3">
+          <h2 className="mb-2 font-semibold text-lg print:mb-1 print:text-sm">{_(msg`Audit Log`)}</h2>
+          <InternalAuditLogTable logs={fullAuditLogs} />
+        </div>
+      )}
+
       {!hidePoweredBy && (
-        <div className="my-8 flex-row-reverse space-y-4">
-          <div className="flex items-end justify-end gap-x-4">
+        <div className="my-4 flex-row-reverse space-y-2 print:my-2">
+          <div className="flex items-end justify-end gap-x-4 print:hidden">
             <div
               className="flex h-24 w-24 justify-center"
               dangerouslySetInnerHTML={{

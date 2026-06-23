@@ -227,6 +227,7 @@ export const run = async ({ payload, io }: { payload: TSealDocumentJobDefinition
           usePlaywrightPdf
             ? getCertificatePdf({
                 documentId,
+                includeAuditLog: needsAuditLog,
                 language: envelope.documentMeta.language,
               }).then(async (buffer) => PDF.load(buffer))
             : generateCertificatePdf(certificatePayload);
@@ -241,7 +242,7 @@ export const run = async ({ payload, io }: { payload: TSealDocumentJobDefinition
 
         [certificateDoc, auditLogDoc] = await Promise.all([
           needsCertificate ? makeCertificatePdf() : null,
-          needsAuditLog ? makeAuditLogPdf() : null,
+          needsAuditLog && !(usePlaywrightPdf && needsCertificate) ? makeAuditLogPdf() : null,
         ]);
       }
 

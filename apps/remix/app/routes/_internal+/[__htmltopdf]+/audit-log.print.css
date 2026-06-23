@@ -1,5 +1,25 @@
 @media print {
   html {
-    font-size: 10pt;
+    font-size: 9pt;
+  }
+
+  /* Compact the audit log table for print/PDF rendering */
+  table {
+    border-collapse: collapse;
+  }
+
+  th,
+  td {
+    padding: 2px 4px !important;
+    line-height: 1.2;
+  }
+
+  /* Allow long tables to break across pages naturally */
+  thead {
+    display: table-header-group;
+  }
+
+  tr {
+    page-break-inside: avoid;
   }
 }

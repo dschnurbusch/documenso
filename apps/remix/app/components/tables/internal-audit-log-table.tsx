@@ -2,7 +2,7 @@ import { APP_I18N_OPTIONS } from '@documenso/lib/constants/i18n';
 import { DOCUMENT_AUDIT_LOG_TYPE, type TDocumentAuditLog } from '@documenso/lib/types/document-audit-logs';
 import { formatDocumentAuditLogAction } from '@documenso/lib/utils/document-audit-logs';
 import { cn } from '@documenso/ui/lib/utils';
-import { Card, CardContent } from '@documenso/ui/primitives/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@documenso/ui/primitives/table';
 import { msg } from '@lingui/core/macro';
 import { useLingui } from '@lingui/react';
 import type { DateTimeFormatOptions } from 'luxon';
@@ -63,76 +63,73 @@ export const InternalAuditLogTable = ({ logs }: AuditLogDataTableProps) => {
   const parser = new UAParser();
 
   return (
-    <div className="space-y-4">
-      {logs.map((log, index) => {
-        parser.setUA(log.userAgent || '');
-        const formattedAction = formatDocumentAuditLogAction(i18n, log);
-        const userAgentInfo = parser.getResult();
+    <Table overflowHidden className="text-xs print:text-[6pt]">
+      <TableHeader>
+        <TableRow className="print:break-inside-avoid">
+          <TableHead className="h-8 w-[15%] px-2 py-1 print:h-auto print:px-1">{_(msg`Time`)}</TableHead>
+          <TableHead className="h-8 w-[34%] px-2 py-1 print:h-auto print:px-1">{_(msg`Event`)}</TableHead>
+          <TableHead className="h-8 w-[18%] px-2 py-1 print:h-auto print:px-1">{_(msg`User`)}</TableHead>
+          <TableHead className="h-8 w-[13%] px-2 py-1 print:h-auto print:px-1">{_(msg`IP Address`)}</TableHead>
+          <TableHead className="h-8 w-[20%] px-2 py-1 print:h-auto print:px-1">{_(msg`Device`)}</TableHead>
+        </TableRow>
+      </TableHeader>
 
-        return (
-          <Card
-            key={index}
-            // Add top margin for the first card to ensure it's not cut off from the 2nd page onwards
-            className={`border shadow-sm ${index > 0 ? 'print:mt-8' : ''}`}
-            style={{
-              pageBreakInside: 'avoid',
-              breakInside: 'avoid',
-            }}
-          >
-            <CardContent className="p-4">
-              {/* Header Section with indicator, event type, and timestamp */}
-              <div className="mb-3 flex items-start justify-between">
-                <div className="flex items-baseline gap-3">
-                  <div className={cn(`h-2 w-2 rounded-full`, getAuditLogIndicatorColor(log.type))} />
+      <TableBody>
+        {logs.map((log, index) => {
+          parser.setUA(log.userAgent || '');
+          const formattedAction = formatDocumentAuditLogAction(i18n, log);
+          const userAgentInfo = parser.getResult();
 
-                  <div>
-                    <div className="font-medium text-muted-foreground text-sm uppercase tracking-wide print:text-[8pt]">
+          return (
+            <TableRow
+              key={index}
+              className="align-top print:break-inside-avoid"
+              style={{
+                pageBreakInside: 'avoid',
+                breakInside: 'avoid',
+              }}
+            >
+              <TableCell
+                truncate={false}
+                className="px-2 py-1.5 align-top text-muted-foreground print:px-1 print:py-0.5"
+              >
+                {DateTime.fromJSDate(log.createdAt)
+                  .setLocale(APP_I18N_OPTIONS.defaultLocale)
+                  .toLocaleString(dateFormat)}
+              </TableCell>
+
+              <TableCell truncate={false} className="px-2 py-1.5 align-top print:px-1 print:py-0.5">
+                <div className="flex items-start gap-2 print:gap-1">
+                  <div
+                    className={cn(
+                      'mt-1.5 h-2 w-2 flex-none rounded-full print:mt-1 print:h-1.5 print:w-1.5',
+                      getAuditLogIndicatorColor(log.type),
+                    )}
+                  />
+                  <div className="min-w-0">
+                    <div className="font-medium text-muted-foreground uppercase tracking-wide print:tracking-normal">
                       {log.type.replace(/_/g, ' ')}
                     </div>
-
-                    <div className="font-medium text-foreground text-sm print:text-[8pt]">
-                      {formattedAction.description}
-                    </div>
+                    <div className="font-medium text-foreground">{formattedAction.description}</div>
                   </div>
                 </div>
+              </TableCell>
 
-                <div className="text-muted-foreground text-sm print:text-[8pt]">
-                  {DateTime.fromJSDate(log.createdAt)
-                    .setLocale(APP_I18N_OPTIONS.defaultLocale)
-                    .toLocaleString(dateFormat)}
-                </div>
-              </div>
+              <TableCell truncate={false} className="break-all px-2 py-1.5 align-top font-mono print:px-1 print:py-0.5">
+                {log.email || 'N/A'}
+              </TableCell>
 
-              <hr className="my-4" />
+              <TableCell truncate={false} className="break-all px-2 py-1.5 align-top font-mono print:px-1 print:py-0.5">
+                {log.ipAddress || 'N/A'}
+              </TableCell>
 
-              {/* Details Section - Two column layout */}
-              <div className="grid grid-cols-2 gap-x-8 gap-y-2 text-xs print:text-[6pt]">
-                <div>
-                  <div className="font-medium text-muted-foreground/70 uppercase tracking-wide">{_(msg`User`)}</div>
-
-                  <div className="mt-1 font-mono text-foreground">{log.email || 'N/A'}</div>
-                </div>
-
-                <div className="text-right">
-                  <div className="font-medium text-muted-foreground/70 uppercase tracking-wide">
-                    {_(msg`IP Address`)}
-                  </div>
-
-                  <div className="mt-1 font-mono text-foreground">{log.ipAddress || 'N/A'}</div>
-                </div>
-
-                <div className="col-span-2">
-                  <div className="font-medium text-muted-foreground/70 uppercase tracking-wide">
-                    {_(msg`User Agent`)}
-                  </div>
-
-                  <div className="mt-1 text-foreground">{_(formatUserAgent(log.userAgent, userAgentInfo))}</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })}
-    </div>
+              <TableCell truncate={false} className="px-2 py-1.5 align-top print:px-1 print:py-0.5">
+                {_(formatUserAgent(log.userAgent, userAgentInfo))}
+              </TableCell>
+            </TableRow>
+          );
+        })}
+      </TableBody>
+    </Table>
   );
 };

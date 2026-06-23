@@ -16,13 +16,19 @@ import { encryptSecondaryData } from '../crypto/encrypt';
 export type GetCertificatePdfOptions = {
   documentId: number;
   includeAuditLog?: boolean;
+  pageWidth?: number;
+  pageHeight?: number;
   // eslint-disable-next-line @typescript-eslint/ban-types
   language?: SupportedLanguageCodes | (string & {});
 };
 
+const pdfPointsToInches = (points: number) => `${points / 72}in`;
+
 export const getCertificatePdf = async ({
   documentId,
   includeAuditLog = false,
+  pageWidth,
+  pageHeight,
   language,
 }: GetCertificatePdfOptions) => {
   const { chromium } = await import('playwright');
@@ -94,7 +100,15 @@ export const getCertificatePdf = async ({
   });
 
   const result = await page.pdf({
-    format: 'A4',
+    ...(pageWidth && pageHeight
+      ? { width: pdfPointsToInches(pageWidth), height: pdfPointsToInches(pageHeight) }
+      : { format: 'A4' as const }),
+    margin: {
+      top: '0.25in',
+      right: '0.25in',
+      bottom: '0.25in',
+      left: '0.25in',
+    },
     printBackground: true,
   });
 

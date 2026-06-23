@@ -228,6 +228,8 @@ export const run = async ({ payload, io }: { payload: TSealDocumentJobDefinition
             ? getCertificatePdf({
                 documentId,
                 includeAuditLog: needsAuditLog,
+                pageWidth,
+                pageHeight,
                 language: envelope.documentMeta.language,
               }).then(async (buffer) => PDF.load(buffer))
             : generateCertificatePdf(certificatePayload);

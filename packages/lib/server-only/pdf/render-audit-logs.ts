@@ -9,14 +9,12 @@ import type { DateTimeFormatOptions } from 'luxon';
 import { DateTime } from 'luxon';
 import type { Canvas } from 'skia-canvas';
 import { Image as SkiaImage } from 'skia-canvas';
-import { match, P } from 'ts-pattern';
 import { UAParser } from 'ua-parser-js';
 
 import { DOCUMENT_STATUS } from '../../constants/document';
 import { APP_I18N_OPTIONS } from '../../constants/i18n';
 import { RECIPIENT_ROLES_DESCRIPTION } from '../../constants/recipient-roles';
 import type { TDocumentAuditLog } from '../../types/document-audit-logs';
-import { DOCUMENT_AUDIT_LOG_TYPE } from '../../types/document-audit-logs';
 import { formatDocumentAuditLogAction } from '../../utils/document-audit-logs';
 import { ensureFontLibrary } from './helpers';
 
@@ -49,7 +47,6 @@ const parser = new UAParser();
 const textMutedForegroundLight = '#929DAE';
 const textForeground = '#000';
 const textMutedForeground = '#64748B';
-const textBase = 10;
 const textSm = 9;
 const textXs = 8;
 const fontMedium = '500';
@@ -57,8 +54,8 @@ const fontMedium = '500';
 const pageTopMargin = 60;
 const pageBottomMargin = 27;
 const contentMaxWidth = 768;
-const rowPadding = 10;
-const titleFontSize = 18;
+const rowPadding = 2;
+const titleFontSize = 16;
 
 type RenderOverviewCardLabelAndTextOptions = {
   label: string;
@@ -108,7 +105,7 @@ const renderOverviewCardLabels = (options: RenderOverviewCardLabelAndTextOptions
         y: group.getClientRect().height + 4,
         width: width - label.width(),
         fontFamily: 'Inter',
-        text: '• ' + textValue,
+        text: `• ${textValue}`,
         fill: textForeground,
         wrap: 'char',
         fontSize: textSm,
@@ -117,50 +114,6 @@ const renderOverviewCardLabels = (options: RenderOverviewCardLabelAndTextOptions
       group.add(value);
     }
   }
-
-  return group;
-};
-
-type RenderVerticalLabelAndTextOptions = {
-  label: string;
-  text: string;
-  width?: number;
-  align?: 'left' | 'right';
-  x?: number;
-  y?: number;
-  textFontFamily?: string;
-};
-
-const renderVerticalLabelAndText = (options: RenderVerticalLabelAndTextOptions) => {
-  const { label, text, width, align, x, y, textFontFamily } = options;
-
-  const group = new Konva.Group({
-    x: x ?? 0,
-    y: y ?? 0,
-  });
-
-  const konvaLabel = new Konva.Text({
-    align: align ?? 'left',
-    fontFamily: 'Inter',
-    width,
-    text: label,
-    fontSize: textXs,
-    fill: textMutedForegroundLight,
-  });
-
-  group.add(konvaLabel);
-
-  const konvaText = new Konva.Text({
-    y: group.getClientRect().height + 6,
-    align: align ?? 'left',
-    fontFamily: textFontFamily ?? 'Inter',
-    width,
-    text: text,
-    fontSize: textXs,
-    fill: textForeground,
-  });
-
-  group.add(konvaText);
 
   return group;
 };
@@ -297,6 +250,58 @@ const renderOverviewCard = (options: RenderOverviewCardOptions) => {
   return overviewCard;
 };
 
+const renderAuditLogTableHeader = ({ width, i18n }: { width: number; i18n: I18n }) => {
+  const columnWidths = getAuditLogColumnWidths(width);
+  const labels = [
+    i18n._(msg`Time`),
+    i18n._(msg`Event`),
+    i18n._(msg`User`),
+    i18n._(msg`IP Address`),
+    i18n._(msg`Device`),
+  ];
+  const header = new Konva.Group();
+  let x = 0;
+
+  for (const [index, label] of labels.entries()) {
+    header.add(
+      new Konva.Text({
+        x: x + 4,
+        y: 3,
+        width: columnWidths[index] - 8,
+        text: label,
+        fontFamily: 'Inter',
+        fontSize: textXs,
+        fontStyle: fontMedium,
+        fill: textMutedForeground,
+        wrap: 'char',
+      }),
+    );
+    x += columnWidths[index];
+  }
+
+  header.add(
+    new Konva.Rect({
+      x: 0,
+      y: 0,
+      width,
+      height: 18,
+      stroke: '#e5e7eb',
+      strokeWidth: 1,
+      fill: '#f8fafc',
+    }),
+  );
+
+  return header;
+};
+
+const getAuditLogColumnWidths = (width: number) => [
+  width * 0.15,
+  width * 0.34,
+  width * 0.18,
+  width * 0.13,
+  width * 0.2,
+];
+
 type RenderRowOptions = {
   auditLog: TDocumentAuditLog;
   width: number;
@@ -306,131 +311,57 @@ type RenderRowOptions = {
 const renderRow = (options: RenderRowOptions) => {
   const { auditLog, width, i18n } = options;
 
-  const paddingWithinCard = 12;
-
-  const columnSpacing = 10;
-  const columnWidth = (width - paddingWithinCard * 2 - columnSpacing) / 2;
-
-  const indicatorWidth = 3;
-  const indicatorPaddingRight = 10;
-  const rowGroup = new Konva.Group();
-
-  const rowHeaderGroup = new Konva.Group();
-
-  const auditLogIndicatorColor = new Konva.Circle({
-    x: indicatorWidth,
-    y: indicatorWidth + 3,
-    radius: indicatorWidth,
-    fill: getAuditLogIndicatorColor(auditLog.type),
-  });
-
-  const auditLogTypeText = new Konva.Text({
-    x: indicatorWidth + indicatorPaddingRight,
-    y: 0,
-    width: columnWidth - indicatorWidth - indicatorPaddingRight,
-    text: auditLog.type.replace(/_/g, ' '),
-    fontFamily: 'Inter',
-    fontSize: textSm,
-    fontStyle: fontMedium,
-    fill: textMutedForeground,
-  });
-
-  const auditLogDescriptionText = new Konva.Text({
-    x: indicatorWidth + indicatorPaddingRight,
-    y: auditLogTypeText.height() + 4,
-    width: columnWidth - indicatorWidth - indicatorPaddingRight,
-    text: formatDocumentAuditLogAction(i18n, auditLog).description,
-    fontFamily: 'Inter',
-    fontSize: textSm,
-    fill: textForeground,
-  });
-
-  const auditLogTimestampText = new Konva.Text({
-    x: columnWidth + columnSpacing,
-    width: columnWidth,
-    text: DateTime.fromJSDate(auditLog.createdAt).setLocale(APP_I18N_OPTIONS.defaultLocale).toLocaleString(dateFormat),
-    fontFamily: 'Inter',
-    align: 'right',
-    fontSize: textSm,
-    fill: textMutedForeground,
-  });
-
-  rowHeaderGroup.add(auditLogIndicatorColor);
-  rowHeaderGroup.add(auditLogTypeText);
-  rowHeaderGroup.add(auditLogDescriptionText);
-  rowHeaderGroup.add(auditLogTimestampText);
-
-  rowHeaderGroup.setAttrs({
-    x: paddingWithinCard,
-    y: paddingWithinCard,
-  } satisfies Partial<Konva.GroupConfig>);
-
-  rowGroup.add(rowHeaderGroup);
-
-  // Draw border line.
-  const borderLine = new Konva.Line({
-    points: [0, 0, width - paddingWithinCard * 2, 0],
-    stroke: '#e5e7eb',
-    strokeWidth: 1,
-    x: paddingWithinCard,
-    y: rowGroup.getClientRect().height + paddingWithinCard + 12,
-  });
-
-  rowGroup.add(borderLine);
-
-  const bottomSection = new Konva.Group({
-    x: paddingWithinCard,
-    y: rowGroup.getClientRect().height + paddingWithinCard + 12,
-  });
-
-  // Row 1 Column 1
-  const userLabel = renderVerticalLabelAndText({
-    label: i18n._(msg`User`).toUpperCase(),
-    text: auditLog.email || 'N/A',
-    align: 'left',
-    width: columnWidth,
-    textFontFamily: 'ui-monospace',
-  });
-
-  // Row 1 Column 2
-  const ipAddressLabel = renderVerticalLabelAndText({
-    label: i18n._(msg`IP Address`).toUpperCase(),
-    text: auditLog.ipAddress || 'N/A',
-    align: 'right',
-    x: columnWidth + columnSpacing,
-    width: columnWidth,
-    textFontFamily: 'ui-monospace',
-  });
-
-  bottomSection.add(userLabel);
-  bottomSection.add(ipAddressLabel);
-
   parser.setUA(auditLog.userAgent || '');
   const userAgentInfo = parser.getResult();
 
-  // Row 2 Column 1
-  const userAgentLabel = renderVerticalLabelAndText({
-    label: i18n._(msg`User Agent`).toUpperCase(),
-    text: i18n._(formatUserAgent(auditLog.userAgent, userAgentInfo)),
-    align: 'left',
-    width,
-    y: bottomSection.getClientRect().height + 16,
-  });
+  const columnWidths = getAuditLogColumnWidths(width);
+  const rowGroup = new Konva.Group();
+  const cellPaddingX = 4;
+  const cellPaddingY = 3;
+  const fontSize = textXs;
+  const lineHeight = 1.15;
 
-  bottomSection.add(userAgentLabel);
-  rowGroup.add(bottomSection);
+  const timeText = DateTime.fromJSDate(auditLog.createdAt)
+    .setLocale(APP_I18N_OPTIONS.defaultLocale)
+    .toLocaleString(dateFormat);
+  const eventText = `${auditLog.type.replace(/_/g, ' ')}\n${formatDocumentAuditLogAction(i18n, auditLog).description}`;
+  const userText = auditLog.email || 'N/A';
+  const ipText = auditLog.ipAddress || 'N/A';
+  const deviceText = i18n._(formatUserAgent(auditLog.userAgent, userAgentInfo));
+  const values = [timeText, eventText, userText, ipText, deviceText];
 
-  const cardRect = new Konva.Rect({
-    x: 0,
-    y: 0,
-    width: rowGroup.getClientRect().width,
-    height: rowGroup.getClientRect().height + paddingWithinCard * 2,
-    stroke: '#e5e7eb',
-    strokeWidth: 1,
-    cornerRadius: 8,
-  });
+  let x = 0;
+  let rowHeight = 0;
 
-  rowGroup.add(cardRect);
+  for (const [index, value] of values.entries()) {
+    const cellText = new Konva.Text({
+      x: x + cellPaddingX,
+      y: cellPaddingY,
+      width: columnWidths[index] - cellPaddingX * 2,
+      text: value,
+      fontFamily: index === 2 || index === 3 ? 'monospace' : 'Inter',
+      fontSize,
+      fill: index === 0 ? textMutedForeground : textForeground,
+      lineHeight,
+      wrap: 'char',
+      fontStyle: index === 1 ? fontMedium : undefined,
+    });
+
+    rowGroup.add(cellText);
+    rowHeight = Math.max(rowHeight, cellText.getClientRect().height + cellPaddingY * 2);
+    x += columnWidths[index];
+  }
+
+  const minRowHeight = 18;
+  rowHeight = Math.max(rowHeight, minRowHeight);
+
+  rowGroup.add(
+    new Konva.Line({
+      points: [0, rowHeight, width, rowHeight],
+      stroke: '#e5e7eb',
+      strokeWidth: 1,
+    }),
+  );
 
   return rowGroup;
 };
@@ -471,8 +402,8 @@ const groupRowsIntoPages = (options: GroupRowsIntoPagesOptions) => {
 
   const overviewCardHeight = overviewCard.getClientRect().height;
 
-  // First page has title + overview card
-  let availableHeight = maxHeight - pageTopMargin - overviewCardHeight;
+  // First page has title + overview card + table header
+  let availableHeight = maxHeight - pageTopMargin - overviewCardHeight - 18;
   let currentGroupedRowIndex = 0;
 
   // Group rows into pages.
@@ -486,8 +417,8 @@ const groupRowsIntoPages = (options: GroupRowsIntoPagesOptions) => {
       currentGroupedRowIndex++;
       groupedRows[currentGroupedRowIndex] = [row];
 
-      // Subsequent pages only have title (no overview card)
-      availableHeight = maxHeight - pageTopMargin;
+      // Subsequent pages only have title + table header
+      availableHeight = maxHeight - pageTopMargin - 18;
     } else {
       groupedRows[currentGroupedRowIndex].push(row);
     }
@@ -539,6 +470,14 @@ const renderPages = (options: RenderPagesOptions) => {
       });
       pageGroup.add(overviewCard);
     }
+
+    // Add table header to each page
+    const tableHeader = renderAuditLogTableHeader({ width: overviewCard.getClientRect().width, i18n });
+    tableHeader.setAttrs({
+      x: margin,
+      y: pageGroup.getClientRect().height + rowPadding,
+    });
+    pageGroup.add(tableHeader);
 
     // Add rows to the page
     for (const row of rows) {
@@ -691,20 +630,6 @@ const dateFormat: DateTimeFormatOptions = {
   ...DateTime.DATETIME_SHORT,
   hourCycle: 'h12',
 };
-
-/**
- * Get the color indicator for the audit log type
- */
-const getAuditLogIndicatorColor = (type: string) =>
-  match(type)
-    .with(DOCUMENT_AUDIT_LOG_TYPE.DOCUMENT_RECIPIENT_COMPLETED, () => '#22c55e') // bg-green-500
-    .with(DOCUMENT_AUDIT_LOG_TYPE.DOCUMENT_RECIPIENT_REJECTED, () => '#ef4444') // bg-red-500
-    .with(DOCUMENT_AUDIT_LOG_TYPE.DOCUMENT_SENT, () => '#f97316') // bg-orange-500
-    .with(
-      P.union(DOCUMENT_AUDIT_LOG_TYPE.DOCUMENT_FIELD_INSERTED, DOCUMENT_AUDIT_LOG_TYPE.DOCUMENT_FIELD_UNINSERTED),
-      () => '#3b82f6', // bg-blue-500
-    )
-    .otherwise(() => '#f1f5f9'); // bg-muted
 
 const formatUserAgent = (userAgent: string | null | undefined, userAgentInfo: UAParser.IResult) => {
   if (!userAgent) {

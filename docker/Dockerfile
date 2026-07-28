@@ -122,6 +122,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   && rm -rf /var/lib/apt/lists/*
 
 ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+ENV NODE_ENV=production
 ENV HUSKY 0
 ENV DOCKER_OUTPUT 1
 ENV HOME=/home/nodejs

@@ -1,0 +1,23 @@
+name: PDF normalization regression
+
+on:
+  pull_request:
+    branches: [sl-signatures-custom]
+  push:
+    branches: [sl-signatures-custom]
+
+permissions:
+  contents: read
+
+jobs:
+  pdf-normalization:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      HUSKY: '0'
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/node-install
+      - name: Test PDF normalization
+        run: npm run test --workspace @documenso/lib -- server-only/pdf

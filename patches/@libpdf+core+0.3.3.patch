@@ -1,0 +1,23 @@
+diff --git a/node_modules/@libpdf/core/dist/index.mjs b/node_modules/@libpdf/core/dist/index.mjs
+index 17ac26f..0d7faa9 100644
+--- a/node_modules/@libpdf/core/dist/index.mjs
++++ b/node_modules/@libpdf/core/dist/index.mjs
+@@ -22758,7 +22758,8 @@ var FormFlattener = class {
+ 	* This isolates the original page's graphics state from our additions.
+ 	*/
+ 	wrapAndAppendContent(page, newContent) {
+-		const existing = page.get("Contents");
++		const rawContents = page.get("Contents");
++		const existing = rawContents instanceof PdfRef ? this.registry.resolve(rawContents) ?? rawContents : rawContents;
+ 		const prefixBytes = new Uint8Array([113, 10]);
+ 		const prefixStream = new PdfStream(new PdfDict(), prefixBytes);
+ 		const prefixRef = this.registry.register(prefixStream);
+@@ -22772,7 +22773,7 @@ var FormFlattener = class {
+ 		else if (existing instanceof PdfArray) {
+ 			const newArray = PdfArray.of(prefixRef, ...this.getArrayItems(existing), suffixRef);
+ 			page.set("Contents", newArray);
+-		} else page.set("Contents", PdfArray.of(prefixRef, existing, suffixRef));
++		} else page.set("Contents", PdfArray.of(prefixRef, rawContents, suffixRef));
+ 	}
+ 	/**
+ 	* Get all items from a PdfArray.

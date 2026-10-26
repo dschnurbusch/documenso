@@ -11,11 +11,7 @@ describe('resolveDistributionMethodForSend', () => {
   });
 
   it('keeps an explicit NONE or EMAIL override', () => {
-    expect(resolveDistributionMethodForSend(DocumentDistributionMethod.NONE)).toBe(
-      DocumentDistributionMethod.NONE,
-    );
-    expect(resolveDistributionMethodForSend(DocumentDistributionMethod.EMAIL)).toBe(
-      DocumentDistributionMethod.EMAIL,
-    );
+    expect(resolveDistributionMethodForSend(DocumentDistributionMethod.NONE)).toBe(DocumentDistributionMethod.NONE);
+    expect(resolveDistributionMethodForSend(DocumentDistributionMethod.EMAIL)).toBe(DocumentDistributionMethod.EMAIL);
   });
 });

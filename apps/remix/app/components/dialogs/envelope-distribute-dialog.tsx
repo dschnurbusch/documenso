@@ -81,7 +81,8 @@ export const EnvelopeDistributeDialog = ({
         emailReplyTo: envelope.documentMeta?.emailReplyTo || undefined,
         subject: envelope.documentMeta?.subject ?? '',
         message: envelope.documentMeta?.message ?? '',
-        distributionMethod: envelope.documentMeta?.distributionMethod || DocumentDistributionMethod.EMAIL,
+        // Always start on Email. None is only applied when the user clicks that tab.
+        distributionMethod: DocumentDistributionMethod.EMAIL,
       },
     },
     resolver: zodResolver(ZEnvelopeDistributeFormSchema),
@@ -198,6 +199,14 @@ export const EnvelopeDistributeDialog = ({
 
     setIsSyncing(false);
   };
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    setValue('meta.distributionMethod', DocumentDistributionMethod.EMAIL);
+  }, [isOpen, setValue]);
 
   useEffect(() => {
     // Resync the whole envelope if the envelope is mid saving.

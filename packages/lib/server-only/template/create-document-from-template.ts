@@ -37,7 +37,7 @@ import { mapEnvelopeToWebhookDocumentPayload, ZWebhookDocumentSchema } from '../
 import type { ApiRequestMetadata } from '../../universal/extract-request-metadata';
 import { getFileServerSide } from '../../universal/upload/get-file.server';
 import { putNormalizedPdfFileServerSide } from '../../universal/upload/put-file.server';
-import { extractDerivedDocumentMeta } from '../../utils/document';
+import { extractDerivedDocumentMeta, resolveDistributionMethodForSend } from '../../utils/document';
 import { createDocumentAuditLogData } from '../../utils/document-audit-logs';
 import {
   createDocumentAuthOptions,
@@ -512,7 +512,7 @@ export const createDocumentFromTemplate = async ({
       timezone: override?.timezone || template.documentMeta?.timezone,
       dateFormat: override?.dateFormat || template.documentMeta?.dateFormat,
       redirectUrl: override?.redirectUrl || template.documentMeta?.redirectUrl,
-      distributionMethod: override?.distributionMethod || template.documentMeta?.distributionMethod,
+      distributionMethod: resolveDistributionMethodForSend(override?.distributionMethod),
       emailSettings: override?.emailSettings || template.documentMeta?.emailSettings,
       signingOrder: override?.signingOrder || template.documentMeta?.signingOrder,
       language: override?.language || template.documentMeta?.language || settings.documentLanguage,

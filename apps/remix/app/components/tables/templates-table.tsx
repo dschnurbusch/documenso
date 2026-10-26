@@ -211,7 +211,6 @@ export const TemplatesTable = ({
                 envelopeId={row.original.envelopeId}
                 templateId={row.original.id}
                 templateSigningOrder={row.original.templateMeta?.signingOrder}
-                documentDistributionMethod={row.original.templateMeta?.distributionMethod}
                 recipients={row.original.recipients}
                 documentRootPath={documentRootPath}
               />

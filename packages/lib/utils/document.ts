@@ -7,6 +7,14 @@ import { DEFAULT_DOCUMENT_EMAIL_SETTINGS } from '../types/document-email';
 import { mapSecondaryIdToDocumentId } from './envelope';
 import { mapRecipientToLegacyRecipient } from './recipients';
 
+/**
+ * Method used when a template or direct link creates and sends a document.
+ * Stored template meta is not inherited. An explicit override, including NONE, is kept.
+ */
+export const resolveDistributionMethodForSend = (override?: DocumentDistributionMethod | null) => {
+  return override ?? DocumentDistributionMethod.EMAIL;
+};
+
 export const isDocumentCompleted = (document: Pick<Envelope, 'status'> | DocumentStatus) => {
   const status = typeof document === 'string' ? document : document.status;
 
